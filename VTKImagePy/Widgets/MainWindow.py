@@ -2,7 +2,8 @@ from PyQt5.QtWidgets import QMainWindow, QMenu, QAction, QFileDialog
 from PyQt5.QtGui import QIcon
 
 from Widgets.VtkVolumeWidget import VtkVolumeWidget
-
+import vtk
+import os
 
 class MainWindow( QMainWindow ):
 	
@@ -62,6 +63,17 @@ class MainWindow( QMainWindow ):
 	def ImportPngSeries( self ):
 		dirPngSeries = QFileDialog.getExistingDirectory( self, "选取Png序列文件夹", "" )
 		print( dirPngSeries )
+		pngFiles = os.listdir( dirPngSeries )
+		strArray = vtk.vtkStringArray()
+		for pngFi in pngFiles:
+			strArray.InsertNextValue( pngFi )
+			pass
+
+		pngReader = vtk.vtkPNGReader()
+		pngReader.SetFileNames( strArray )		
+
+		print( pngFiles )
+
 		pass
 
 
