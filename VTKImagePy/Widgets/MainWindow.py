@@ -1,9 +1,11 @@
+import os
+import vtk
+
 from PyQt5.QtWidgets import QMainWindow, QMenu, QAction, QFileDialog
 from PyQt5.QtGui import QIcon
 
 from Widgets.VtkVolumeWidget import VtkVolumeWidget
-import vtk
-import os
+
 
 class MainWindow( QMainWindow ):
 	
@@ -14,66 +16,76 @@ class MainWindow( QMainWindow ):
 		self.resize( 800, 600 )
 
 		#MenuBar
-		self.m_menuBar = self.menuBar()
-		self.m_menuFile = self.m_menuBar.addMenu( '&File' )
+		self.menuBar = self.menuBar()
+		self.menuFile = self.menuBar.addMenu( 'File' )
+		self.menuFilter = self.menuBar.addMenu( 'Filter' )
+		self.menuSegment = self.menuBar.addMenu( 'Segment' )
 		
-		#SubMenu: import
-		self.m_subActionRawData = QAction( 'Raw Data' )
-		self.m_subActionRawData.triggered.connect( self.ImportRawData )
+		#Menu: File
+		self.subActionRawData = QAction( 'Raw Data' )
+		self.subActionRawData.triggered.connect( self.ImportRawData )
 
-		self.m_subActionJpgSeries = QAction( 'Jpg Series' )
-		self.m_subActionJpgSeries.triggered.connect( self.ImportJpgSeries )
+		self.subActionJpgSeries = QAction( 'Jpg Series' )
+		self.subActionJpgSeries.triggered.connect( self.ImportJpgSeries )
 
-		self.m_subActionPngSeries = QAction( 'Png Series' )
-		self.m_subActionPngSeries.triggered.connect( self.ImportPngSeries )
+		self.subActionPngSeries = QAction( 'Png Series' )
+		self.subActionPngSeries.triggered.connect( self.ImportPngSeries )
 
-		self.m_subActionDicomData = QAction( 'Dicom Data' )
-		self.m_subActionDicomData.triggered.connect( self.ImportDicomData )
+		self.subActionDicomData = QAction( 'Dicom Data' )
+		self.subActionDicomData.triggered.connect( self.ImportDicomData )
 
-		self.m_subActionDicomSeries = QAction( 'Dicom Series' )
-		self.m_subActionDicomSeries.triggered.connect( self.ImportDicomSeries )
+		self.subActionDicomSeries = QAction( 'Dicom Series' )
+		self.subActionDicomSeries.triggered.connect( self.ImportDicomSeries )
 		
-		self.m_subMenuImport = QMenu( 'Import' )
-		self.m_subMenuImport.addAction( self.m_subActionRawData )
-		self.m_subMenuImport.addAction( self.m_subActionJpgSeries )
-		self.m_subMenuImport.addAction( self.m_subActionPngSeries )
-		self.m_subMenuImport.addAction( self.m_subActionDicomData )
-		self.m_subMenuImport.addAction( self.m_subActionDicomSeries )
+		self.subMenuImport = QMenu( 'Import' )
+		self.subMenuImport.addAction( self.subActionRawData )
+		self.subMenuImport.addAction( self.subActionJpgSeries )
+		self.subMenuImport.addAction( self.subActionPngSeries )
+		self.subMenuImport.addAction( self.subActionDicomData )
+		self.subMenuImport.addAction( self.subActionDicomSeries )
 
-		self.m_actionExit = QAction( 'Exit' )
-		self.m_actionExit.triggered.connect( self.close )
+		self.actionExit = QAction( 'Exit' )
+		self.actionExit.triggered.connect( self.close )
 
-		self.m_menuFile.addMenu( self.m_subMenuImport )
-		self.m_menuFile.addAction( self.m_actionExit )
+		self.menuFile.addMenu( self.subMenuImport )
+		self.menuFile.addAction( self.actionExit )
+
+		#Menu: Filter
+
+		#Menu: Segment
 
 		#Central Widget
-		self.vtkVRWidget = VtkVolumeWidget()
-		self.setCentralWidget( self.vtkVRWidget )
+		self.m_vtkVRWidget = VtkVolumeWidget()
+		self.setCentralWidget( self.m_vtkVRWidget )
 		pass
 
+	def GetImageSeries( self ):
+		dirImageSeries = QFileDialog.getExistingDirectory( self, '选取序列文件夹', '' )
+		print( 'Image Data Path : ' + dirImageSeries )
+		pngFiles = os.listdir( dirImageSeries )
+		vtkStrArray = vtk.vtkStringArray()
+		for pngFile in pngFiles:
+			strFilePath = dirImageSeries + '/' + pngFile
+			vtkStrArray.InsertNextValue( strFilePath )			
+		return vtkStrArray
 
 	def ImportRawData( self ):
 		pass
 
 
 	def ImportJpgSeries( self ):
+		imgReader = vtk.vtkJPEGReader()
+		imgReader.SetFileNames( self.GetImageSeries() )		
+		imgReader.Update()
+		self.m_vtkVRWidget.DisplayVolume( imgReader.GetOutputPort() )
 		pass
 		
 
 	def ImportPngSeries( self ):
-		dirPngSeries = QFileDialog.getExistingDirectory( self, "选取Png序列文件夹", "" )
-		print( dirPngSeries )
-		pngFiles = os.listdir( dirPngSeries )
-		strArray = vtk.vtkStringArray()
-		for pngFi in pngFiles:
-			strArray.InsertNextValue( pngFi )
-			pass
-
 		pngReader = vtk.vtkPNGReader()
-		pngReader.SetFileNames( strArray )		
-
-		print( pngFiles )
-
+		pngReader.SetFileNames( self.GetImageSeries( '*.PNG'  ) )		
+		pngReader.Update()
+		self.m_vtkVRWidget.DisplayVolume( pngReader.GetOutputPort() )
 		pass
 
 
