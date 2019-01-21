@@ -1,10 +1,13 @@
 import sys
 sys.path.append( '../' )
+sys.path.append( '../Filters' )
 
 import vtk
-from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
-from PyQt5.QtWidgets import QWidget, QGridLayout
 import GlobalDef as gldef
+from PyQt5.QtWidgets import QWidget, QGridLayout
+from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+
+import VtkFilters as vtk_flt
 
 class VtkVolumeWidget( QWidget ):
 	def __init__( self ):
@@ -19,14 +22,14 @@ class VtkVolumeWidget( QWidget ):
 		self.vtk_render_win.AddRenderer( self.vtk_renderer )
 		self.vtk_interactor = self.vtk_render_win.GetInteractor()
 		self.vtk_interactor.Initialize()
-		#self.TestDisplay()
 
+		self.vtk_volume_mapper = vtk.vtkSmartVolumeMapper()
 		pass
 
 	def DisplayVolume( self, vtk_image_data ):
 		#Save vtk_image_data as global param
 		gldefIndex = gldef.GetGlobalDefLen()
-		gldef.SetValue( 0, vtk_image_data )
+		gldef.SetValue( gldefIndex, vtk_image_data )
 
 		#VolumeProperty: Opacity
 		vtk_piecewisefunc = vtk.vtkPiecewiseFunction()
@@ -52,29 +55,39 @@ class VtkVolumeWidget( QWidget ):
 		vtk_volproperty.SetSpecular( 0.2 )
 		vtk_volproperty.SetSpecularPower( 10 )
 		
-		vtk_volmapper = vtk.vtkSmartVolumeMapper()
-		vtk_volmapper.SetInputData( vtk_image_data )
+		self.vtk_volume_mapper.SetInputData( vtk_image_data )
 
 		vtk_volume = vtk.vtkVolume()
-		vtk_volume.SetMapper( vtk_volmapper )
+		vtk_volume.SetMapper( self.vtk_volume_mapper )
 		vtk_volume.SetProperty( vtk_volproperty )
 		
+		self.vtk_renderer.RemoveAllViewProps(); #Delete All Images
 		self.vtk_renderer.AddVolume( vtk_volume )
 		self.vtk_renderer.ResetCamera()
 		self.vtk_render_win.Render()
 		pass
 
-	def TestDisplay( self ):
-		#test
-		src_sphere = vtk.vtkSphereSource()
-		src_sphere.SetCenter( 0, 0, 0 )
-		src_sphere.SetRadius( 5.0 )
-		poly_mapper = vtk.vtkPolyDataMapper()
-		poly_mapper.SetInputConnection( src_sphere.GetOutputPort() )
-		poly_actor = vtk.vtkActor()
-		poly_actor.SetMapper( poly_mapper )
-		self.vtk_renderer.AddActor( poly_actor )
-		self.vtk_renderer.ResetCamera()
-		self.vtk_widget.Render()
+
+	def GaussFilter( self ):
+		vtk_image_data = self.vtk_volume_mapper.GetInput()
+		vtk_image_data = vtk_flt.GaussFilter3D( vtk_image_data )
+		self.vtk_volume_mapper.SetInputData( vtk_image_data )
+		self.vtk_volume_mapper.Modified()
 		pass
 
+	def MedianFilter( self ):
+		vtk_image_data = self.vtk_volume_mapper.GetInput()
+		vtk_image_data = vtk_flt.MedianFilter3D( vtk_image_data )
+		self.vtk_volume_mapper.SetInputData( vtk_image_data )
+		self.vtk_volume_mapper.Modified()
+		pass
+
+	def ConvolveFilter( self ):
+		vtk_image_data = self.vtk_volume_mapper.GetInput()
+		vtk_image_data = vtk_flt.ConvolveFilter( vtk_image_data )
+		self.vtk_volume_mapper.SetInputData( vtk_image_data )
+		self.vtk_volume_mapper.Modified()
+		pass
+
+	def ThresholdSegment( self ):
+		pass

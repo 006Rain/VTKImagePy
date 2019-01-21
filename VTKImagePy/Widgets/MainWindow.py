@@ -1,6 +1,5 @@
 import sys
 sys.path.append( './Widgets' )
-sys.path.append( '../Filters' )
 
 import os
 import vtk
@@ -10,16 +9,17 @@ from PyQt5.QtGui import QIcon
 
 from VtkVolumeWidget import VtkVolumeWidget
 import GlobalDef as gldef
-from GaussFilter import *
-
 
 class MainWindow( QMainWindow ):
-	
 	def __init__( self ):
 		super().__init__()
 		self.setWindowTitle( 'VTKImagePy' )
 		self.setWindowIcon( QIcon( 'Logo.png' ) )
 		self.resize( 800, 600 )
+
+		#Central Widget		
+		self.vtk_VR_widget = VtkVolumeWidget()
+		self.setCentralWidget( self.vtk_VR_widget )
 
 		#MenuBar
 		self.menuBar = self.menuBar()
@@ -54,18 +54,28 @@ class MainWindow( QMainWindow ):
 		self.actionExit.triggered.connect( self.close )
 
 		self.menuFile.addMenu( self.subMenuImport )
-		self.menuFile.addAction( self.actionExit )
+		#self.menuFile.addAction( self.actionExit )
 
 		#Menu: Filter
-		self.subActionGaussFilter = QAction( 'Gauss Filter' )
-		self.subActionGaussFilter.triggered.connect( self.GaussFilter )
+		self.subActionGaussFilter = QAction( 'Gauss' )
+		self.subActionGaussFilter.triggered.connect( self.vtk_VR_widget.GaussFilter )
+
+		self.subActionMedianFilter = QAction( 'Median' )
+		self.subActionMedianFilter.triggered.connect( self.vtk_VR_widget.MedianFilter )
+
+		self.subActionConvolveFilter = QAction( 'Convolve' )
+		self.subActionConvolveFilter.triggered.connect( self.ConvolveFilter )
 
 		self.menuFilter.addAction( self.subActionGaussFilter )
-		#Menu: Segment
+		self.menuFilter.addAction( self.subActionMedianFilter )
+		self.menuFilter.addAction( self.subActionConvolveFilter )
 
-		#Central Widget
-		self.vtk_VR_widget = VtkVolumeWidget()
-		self.setCentralWidget( self.vtk_VR_widget )
+		#Menu: Segment
+		self.subActionThresholdSeg = QAction( 'Threshold' )
+		self.subActionThresholdSeg.triggered.connect( self.ThresholdSegment )
+
+		self.menuSegment.addAction( self.subActionThresholdSeg )
+
 		pass
 
 	def GetImageSeries( self ):
@@ -81,15 +91,13 @@ class MainWindow( QMainWindow ):
 	def ImportRawData( self ):
 		pass
 
-
 	def ImportJpgSeries( self ):
 		imgReader = vtk.vtkJPEGReader()
 		imgReader.SetFileNames( self.GetImageSeries() )		
 		imgReader.Update()
-		self.vtk_VR_widget.DisplayVolume( imgReader.GetOutput() )
+		self.m_vtk_VR_widget.DisplayVolume( imgReader.GetOutput() )
 		pass
 		
-
 	def ImportPngSeries( self ):
 		pngReader = vtk.vtkPNGReader()
 		pngReader.SetFileNames( self.GetImageSeries() )		
@@ -97,17 +105,18 @@ class MainWindow( QMainWindow ):
 		self.vtk_VR_widget.DisplayVolume( pngReader.GetOutput() )
 		pass
 
-
 	def ImportDicomData( self ):
 		pass
 
-
 	def ImportDicomSeries( self ):
-		pass	
+		pass
 
-	def GaussFilter( self ):
-		if gldef.GetGlobalDefLen() > 0:
-			vtk_image_data = gldef.GetValue( 0 )
-			if None != vtk_image_data:
-				GaussFilter3D( vtk_image_data )
+	def ConvolveFilter( self ):
+		#
+		self.vtk_VR_widget.ConvolveFilter()
+		pass
+
+	def ThresholdSegment( self ):
+		#
+		self.vtk_VR_widget.ThresholdSegment()
 		pass
