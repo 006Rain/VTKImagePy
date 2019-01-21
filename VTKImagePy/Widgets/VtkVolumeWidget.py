@@ -1,70 +1,80 @@
+import sys
+sys.path.append( '../' )
+
 import vtk
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from PyQt5.QtWidgets import QWidget, QGridLayout
+import GlobalDef as gldef
 
 class VtkVolumeWidget( QWidget ):
 	def __init__( self ):
 		super().__init__()
-		self.m_vtkWidget = QVTKRenderWindowInteractor( self )
-		self.m_layoutMain = QGridLayout()
-		self.m_layoutMain.addWidget( self.m_vtkWidget )
-		self.setLayout( self.m_layoutMain )
+		self.vtk_widget = QVTKRenderWindowInteractor( self )
+		self.main_layout = QGridLayout()
+		self.main_layout.addWidget( self.vtk_widget )
+		self.setLayout( self.main_layout )
 		
-		self.m_vtkRender = vtk.vtkRenderer()
-		self.m_vtkRenderWin = self.m_vtkWidget.GetRenderWindow()
-		self.m_vtkRenderWin.AddRenderer( self.m_vtkRender )
-		self.m_vtkInteractor = self.m_vtkRenderWin.GetInteractor()
-		self.m_vtkInteractor.Initialize()
+		self.vtk_renderer = vtk.vtkRenderer()
+		self.vtk_render_win = self.vtk_widget.GetRenderWindow()
+		self.vtk_render_win.AddRenderer( self.vtk_renderer )
+		self.vtk_interactor = self.vtk_render_win.GetInteractor()
+		self.vtk_interactor.Initialize()
 		#self.TestDisplay()
 
 		pass
 
-	def DisplayVolume( self, vtkOutput ):
+	def DisplayVolume( self, vtk_image_data ):
+		#Save vtk_image_data as global param
+		gldefIndex = gldef.GetGlobalDefLen()
+		gldef.SetValue( 0, vtk_image_data )
 
-		vtkPiecewiseFunc = vtk.vtkPiecewiseFunction()
-		vtkPiecewiseFunc.AddPoint( 20, 0.0 )
-		vtkPiecewiseFunc.AddPoint( 255, 0.2 )
+		#VolumeProperty: Opacity
+		vtk_piecewisefunc = vtk.vtkPiecewiseFunction()
+		vtk_piecewisefunc.AddPoint( 20, 0.0 )
+		vtk_piecewisefunc.AddPoint( 255, 0.2 )
 
-		vtkColorTransFunc = vtk.vtkColorTransferFunction()
-		vtkColorTransFunc.AddRGBPoint( 0.0, 0.0, 0.5, 0.0 )
-		vtkColorTransFunc.AddRGBPoint( 60.0, 1.0, 0.0, 0.0 )
-		vtkColorTransFunc.AddRGBPoint( 128.0, 0.2, 0.1, 0.9 )
-		vtkColorTransFunc.AddRGBPoint( 196.0, 0.27, 0.21, 0.1 )
-		vtkColorTransFunc.AddRGBPoint( 255.0, 0.8, 0.8, 0.8 )
+		#VolumeProperty: Color
+		vtk_colortransfunc = vtk.vtkColorTransferFunction()
+		vtk_colortransfunc.AddRGBPoint( 0.0, 0.0, 0.5, 0.0 )
+		vtk_colortransfunc.AddRGBPoint( 60.0, 1.0, 0.0, 0.0 )
+		vtk_colortransfunc.AddRGBPoint( 128.0, 0.2, 0.1, 0.9 )
+		vtk_colortransfunc.AddRGBPoint( 196.0, 0.27, 0.21, 0.1 )
+		vtk_colortransfunc.AddRGBPoint( 255.0, 0.8, 0.8, 0.8 )
 
-		vtkVolProperty = vtk.vtkVolumeProperty()
-		vtkVolProperty.SetColor( vtkColorTransFunc )
-		vtkVolProperty.SetScalarOpacity( vtkPiecewiseFunc )
-		vtkVolProperty.ShadeOn()
-		vtkVolProperty.SetInterpolationTypeToLinear()
-		vtkVolProperty.SetAmbient( 0.2 )
-		vtkVolProperty.SetDiffuse( 0.9 )
-		vtkVolProperty.SetSpecular( 0.2 )
-		vtkVolProperty.SetSpecularPower( 10 )
+		#VolumeProperty
+		vtk_volproperty = vtk.vtkVolumeProperty()
+		vtk_volproperty.SetColor( vtk_colortransfunc )
+		vtk_volproperty.SetScalarOpacity( vtk_piecewisefunc )
+		vtk_volproperty.ShadeOn()
+		vtk_volproperty.SetInterpolationTypeToLinear()
+		vtk_volproperty.SetAmbient( 0.2 )
+		vtk_volproperty.SetDiffuse( 0.9 )
+		vtk_volproperty.SetSpecular( 0.2 )
+		vtk_volproperty.SetSpecularPower( 10 )
 		
-		vtkVolMapper = vtk.vtkSmartVolumeMapper()
-		vtkVolMapper.SetInputConnection( vtkOutput )
+		vtk_volmapper = vtk.vtkSmartVolumeMapper()
+		vtk_volmapper.SetInputData( vtk_image_data )
 
-		vtkVol = vtk.vtkVolume()
-		vtkVol.SetMapper( vtkVolMapper )
-		vtkVol.SetProperty( vtkVolProperty )
+		vtk_volume = vtk.vtkVolume()
+		vtk_volume.SetMapper( vtk_volmapper )
+		vtk_volume.SetProperty( vtk_volproperty )
 		
-		self.m_vtkRender.AddVolume( vtkVol )
-		self.m_vtkRender.ResetCamera()
-		self.m_vtkRenderWin.Render()
+		self.vtk_renderer.AddVolume( vtk_volume )
+		self.vtk_renderer.ResetCamera()
+		self.vtk_render_win.Render()
 		pass
 
 	def TestDisplay( self ):
 		#test
-		srcSphere = vtk.vtkSphereSource()
-		srcSphere.SetCenter( 0, 0, 0 )
-		srcSphere.SetRadius( 5.0 )
-		polyMapper = vtk.vtkPolyDataMapper()
-		polyMapper.SetInputConnection( srcSphere.GetOutputPort() )
-		polyActor = vtk.vtkActor()
-		polyActor.SetMapper( polyMapper )
-		self.m_vtkRender.AddActor( polyActor )
-		self.m_vtkRender.ResetCamera()
-		self.m_vtkWidget.Render()
+		src_sphere = vtk.vtkSphereSource()
+		src_sphere.SetCenter( 0, 0, 0 )
+		src_sphere.SetRadius( 5.0 )
+		poly_mapper = vtk.vtkPolyDataMapper()
+		poly_mapper.SetInputConnection( src_sphere.GetOutputPort() )
+		poly_actor = vtk.vtkActor()
+		poly_actor.SetMapper( poly_mapper )
+		self.vtk_renderer.AddActor( poly_actor )
+		self.vtk_renderer.ResetCamera()
+		self.vtk_widget.Render()
 		pass
 

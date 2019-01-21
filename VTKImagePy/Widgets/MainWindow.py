@@ -1,10 +1,16 @@
+import sys
+sys.path.append( './Widgets' )
+sys.path.append( '../Filters' )
+
 import os
 import vtk
 
 from PyQt5.QtWidgets import QMainWindow, QMenu, QAction, QFileDialog
 from PyQt5.QtGui import QIcon
 
-from Widgets.VtkVolumeWidget import VtkVolumeWidget
+from VtkVolumeWidget import VtkVolumeWidget
+import GlobalDef as gldef
+from GaussFilter import *
 
 
 class MainWindow( QMainWindow ):
@@ -51,16 +57,19 @@ class MainWindow( QMainWindow ):
 		self.menuFile.addAction( self.actionExit )
 
 		#Menu: Filter
+		self.subActionGaussFilter = QAction( 'Gauss Filter' )
+		self.subActionGaussFilter.triggered.connect( self.GaussFilter )
 
+		self.menuFilter.addAction( self.subActionGaussFilter )
 		#Menu: Segment
 
 		#Central Widget
-		self.m_vtkVRWidget = VtkVolumeWidget()
-		self.setCentralWidget( self.m_vtkVRWidget )
+		self.vtk_VR_widget = VtkVolumeWidget()
+		self.setCentralWidget( self.vtk_VR_widget )
 		pass
 
 	def GetImageSeries( self ):
-		dirImageSeries = QFileDialog.getExistingDirectory( self, '选取序列文件夹', '' )
+		dirImageSeries = QFileDialog.getExistingDirectory( self, '选取序列文件夹' )
 		print( 'Image Data Path : ' + dirImageSeries )
 		pngFiles = os.listdir( dirImageSeries )
 		vtkStrArray = vtk.vtkStringArray()
@@ -77,15 +86,15 @@ class MainWindow( QMainWindow ):
 		imgReader = vtk.vtkJPEGReader()
 		imgReader.SetFileNames( self.GetImageSeries() )		
 		imgReader.Update()
-		self.m_vtkVRWidget.DisplayVolume( imgReader.GetOutputPort() )
+		self.vtk_VR_widget.DisplayVolume( imgReader.GetOutput() )
 		pass
 		
 
 	def ImportPngSeries( self ):
 		pngReader = vtk.vtkPNGReader()
-		pngReader.SetFileNames( self.GetImageSeries( '*.PNG'  ) )		
+		pngReader.SetFileNames( self.GetImageSeries() )		
 		pngReader.Update()
-		self.m_vtkVRWidget.DisplayVolume( pngReader.GetOutputPort() )
+		self.vtk_VR_widget.DisplayVolume( pngReader.GetOutput() )
 		pass
 
 
@@ -95,3 +104,10 @@ class MainWindow( QMainWindow ):
 
 	def ImportDicomSeries( self ):
 		pass	
+
+	def GaussFilter( self ):
+		if gldef.GetGlobalDefLen() > 0:
+			vtk_image_data = gldef.GetValue( 0 )
+			if None != vtk_image_data:
+				GaussFilter3D( vtk_image_data )
+		pass
